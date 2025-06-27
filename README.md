@@ -5,7 +5,7 @@ This repository contains a collection of scripts for extracting, analyzing, and 
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 .
@@ -16,162 +16,46 @@ This repository contains a collection of scripts for extracting, analyzing, and 
 ├── calculate_shannon.sh        # Computes Shannon-Wiener diversity index per sample
 ├── run_alpha_diversity.pbs     # PBS job to compute Shannon diversity from .bracken files
 ├── alpha_diversity.py          # Python script to compute alpha diversity (called by PBS job)
+├── analysis.R                  # Initial R pipeline: genus-level taxonomy and preprocessing
+├── rank_analysis.R             # R script extending analysis to family/species and comparisons
+├── sample_taxa_analysis.R      # R script for comparative diversity between GCF and taxonomy
 ├── README.md                   # Project documentation (this file)
 ```
 
 ---
 
-## 🗏️ Requirements
+## Requirements
 
-- Python 3 (for `get_urls.py`, `download_fasta.py`, `alpha_diversity.py`)
-- `pandas`, `requests` Python libraries
-- `awk` (GNU Awk recommended)
-- PBS/Torque job scheduler (for job scripts)
-- Bracken `.report` and `.bracken` files for diversity estimation
-
----
-
-## 🔧 Scripts Overview
-
-### 1. `get_urls.py`
-
-Extracts processed contig download links from a list of assembly JSON URLs and creates a `.tsv` mapping file.
-
-**Usage**:
-
-```bash
-python get_urls.py assemblies.txt -n output.tsv
-```
-
-**Inputs**:
-
-- `assemblies.txt`: Text file with one JSON URL per line
-
-**Outputs**:
-
-- TSV file with sample IDs and their corresponding download URLs
+- **Python 3** with `pandas`, `requests`
+- **GNU awk**
+- **PBS/Torque scheduler** (or adapt scripts for SLURM, etc.)
+- **R** with common tidyverse/data wrangling packages (e.g., `dplyr`, `ggplot2`)
 
 ---
 
-### 2. `download_fasta.py`
+### Python and Bash Components
 
-Downloads FASTA files using the mapping file generated above.
-
-**Usage**:
-
-```bash
-python download_fasta.py "sample123\t<download_url>" -o output_folder
-```
-
-**Inputs**:
-
-- A line from the TSV file: `<sample_id>\t<url>`
-
-**Outputs**:
-
-- Downloaded `.fasta.gz` file in specified directory
+| Script                     | Description                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `get_urls.py`              | Parses assembly JSONs and retrieves download links for processed contigs                         |
+| `download_fasta.py`        | Downloads `.fasta.gz` files from URLs                                                            |
+| `generate_pbs_richness.sh` | Creates PBS scripts to compute family/genus/species richness from Kraken/Bracken `.report` files |
+| `count_gcf_ids.sh`         | Counts distinct GCF IDs per sample, including unclassified `-1`                                  |
+| `calculate_shannon.sh`     | Calculates Shannon-Wiener diversity index from GCF distributions                                 |
+| `run_alpha_diversity.pbs`  | Batch submits diversity calculations using `.bracken` files                                      |
+| `alpha_diversity.py`       | Computes Shannon index from `.bracken` files with error handling                                 |
 
 ---
 
-### 3. `generate_pbs_richness.sh`
+### R Analysis Pipelines
 
-Generates PBS job scripts that compute richness (family, genus, species) for each sample using `.report` files.
+| Script                   | Description                                                                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `analysis.R`             | Initial exploratory analysis using BGC Atlas metadata. Preprocesses input and examines genus-level taxonomy.                       |
+| `rank_analysis.R`        | Extends taxonomy analysis to family and species ranks; compares diversity across taxonomic levels.                                 |
+| `sample_taxa_analysis.R` | Performs comparative analysis between GCF-based diversity (from Bash scripts) and taxonomy-based diversity (from `.report` files). |
 
-**Usage**:
-
-```bash
-./generate_pbs_richness.sh
-```
-
-**Inputs**:
-
-- Subdirectories in `parent_dir` each containing a `.report` file
-
-**Outputs**:
-
-- PBS job scripts in `scripts/`, ready for submission
-
----
-
-### 4. `count_gcf_ids.sh`
-
-Counts distinct GCF IDs per sample, treating `-1` values as a special "unclassified" case.
-
-**Usage**:
-
-```bash
-./count_gcf_ids.sh
-```
-
-**Inputs**:
-
-- `regions_taxonomy.tsv`: Sample and GCF ID in columns 2 and 14
-
-**Outputs**:
-
-- `sample_gcf_counts.tsv`: Sample and GCF count
-
----
-
-### 5. `calculate_shannon.sh`
-
-Calculates Shannon-Wiener diversity index per sample based on GCF ID distributions.
-
-**Usage**:
-
-```bash
-./calculate_shannon.sh
-```
-
-**Inputs**:
-
-- `regions_taxonomy.tsv`: Sample and GCF ID in columns 2 and 14
-
-**Outputs**:
-
-- `sample_gcf_shannon.tsv`: Sample and Shannon index
-
----
-
-### 6. `run_alpha_diversity.pbs`
-
-PBS script to batch compute alpha diversity from `.bracken` files using `alpha_diversity.py`.
-
-**Usage**: Submit to your cluster:
-
-```bash
-qsub run_alpha_diversity.pbs
-```
-
-**Outputs**:
-
-- `alpha_diversity_results.csv`: Sample and Shannon diversity values
-- `error_log.txt`: Samples skipped due to division errors
-
----
-
-## Output Examples
-
-### `output.tsv`
-
-```tsv
-SAMPLE_001    https://example.org/download/SAMPLE_001.fasta.gz
-SAMPLE_002    https://example.org/download/SAMPLE_002.fasta.gz
-```
-
-### `sample_gcf_counts.tsv`
-
-```tsv
-SAMPLE_001    42
-SAMPLE_002    37
-```
-
-### `sample_gcf_shannon.tsv`
-
-```tsv
-SAMPLE_001    3.154211
-SAMPLE_002    2.837493
-```
+These R scripts are meant to be run interactively or in RStudio, and they assume that inputs such as `sample_gcf_counts.tsv`, `sample_gcf_shannon.tsv`, and richness `.tsv` outputs from PBS jobs are available.
 
 ---
 
@@ -179,7 +63,8 @@ SAMPLE_002    2.837493
 
 - Scripts assume column 2 = sample ID, column 14 = GCF ID in `regions_taxonomy.tsv`.
 - PBS scripts are tuned for Torque environments — modify headers if using SLURM or others.
-- Make sure `alpha_diversity.py` is executable and in your PATH or working directory.
+- Make sure the R scripts have access to the cleaned TSV outputs for downstream comparison.
+- Diversity calculations in R use Shannon and richness indices consistent with Bash results.
 
 ---
 
