@@ -14,7 +14,7 @@ This repository contains a collection of scripts for extracting, analyzing, and 
 ├── generate_pbs_richness.sh    # Creates PBS scripts to compute richness from .report files
 ├── count_gcf_ids.sh            # Counts distinct GCF IDs per sample
 ├── calculate_shannon.sh        # Computes Shannon-Wiener diversity index per sample
-├── run_alpha_diversity.pbs     # PBS job to compute Shannon diversity from .bracken files
+├── run_alpha_diversity.sh     # PBS job to compute Shannon diversity from .bracken files
 ├── alpha_diversity.py          # Python script to compute alpha diversity (called by PBS job)
 ├── analysis.R                  # Initial R pipeline: genus-level taxonomy and preprocessing
 ├── rank_analysis.R             # R script extending analysis to family/species and comparisons
